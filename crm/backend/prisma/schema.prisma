@@ -1,0 +1,633 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SUPPORT_MANAGER
+  SUPPORT_AGENT
+  CUSTOMER
+}
+
+enum AccountStatus {
+  ACTIVE
+  DEACTIVATED
+}
+
+enum AuthEvent {
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  ACCOUNT_LOCKED
+  LOGOUT
+  TOKEN_REFRESH
+  PASSWORD_RESET_REQUEST
+  PASSWORD_RESET_SUCCESS
+  PASSWORD_CHANGED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING
+  RESOLVED
+  CLOSED
+  CANCELLED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TicketActivityEvent {
+  CREATED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+  CATEGORY_CHANGED
+  ASSIGNED
+  REASSIGNED
+  UNASSIGNED
+  COMMENT_ADDED
+  INTERNAL_NOTE_ADDED
+  AUTO_CLOSED
+  ESCALATED
+  DE_ESCALATED
+  ATTACHMENT_ADDED
+  AUTO_ASSIGNED
+}
+
+enum AgentStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+enum RuleConditionField {
+  CATEGORY
+  PRIORITY
+  ORGANISATION
+}
+
+enum RuleConditionOperator {
+  EQUALS
+  IN
+}
+
+enum TriggerCondition {
+  TIME_SINCE_CREATION
+  TIME_SINCE_LAST_COMMENT
+  TIME_UNASSIGNED
+}
+
+enum EscalationActionType {
+  NOTIFY_USER
+  NOTIFY_ROLE
+  REASSIGN
+  ELEVATE_PRIORITY
+}
+
+enum EscalationEventType {
+  AUTO
+  MANUAL
+}
+
+enum NotificationEventType {
+  TICKET_CREATED
+  TICKET_ASSIGNED
+  TICKET_REASSIGNED
+  TICKET_STATUS_CHANGED
+  TICKET_COMMENT_ADDED
+  TICKET_RESOLVED
+  TICKET_AUTO_CLOSED
+  TICKET_ESCALATED
+  TICKET_DE_ESCALATED
+  TICKET_AUTO_ASSIGNED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  SUPPRESSED
+}
+
+enum DeliveryAttemptStatus {
+  SENT
+  FAILED
+}
+
+model User {
+  id                  String        @id @default(uuid())
+  email               String        @unique
+  passwordHash        String
+  role                Role
+  status              AccountStatus @default(ACTIVE)
+  failedLoginAttempts Int           @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  refreshTokens             RefreshToken[]
+  passwordResetTokens       PasswordResetToken[]
+  authEventLogs             AuthEventLog[]
+  customerProfile           Customer?
+  changedCustomerAudits     CustomerProfileAuditEntry[] @relation("CustomerAuditActor")
+  customerTickets           Ticket[]                    @relation("CustomerTickets")
+  assignedTickets           Ticket[]                    @relation("AgentTickets")
+  ticketComments            TicketComment[]
+  ticketActivityLogs        TicketActivityLogEntry[]    @relation("TicketActivityActor")
+  teamMemberships           TeamMembership[]            @relation("AgentTeamMemberships")
+  targetAssignmentRules     AssignmentRule[]            @relation("AgentTargetRules")
+  agentAvailability         AgentAvailability?          @relation("AgentAvailability")
+  agentSchedule             AgentAvailabilitySchedule[] @relation("AgentSchedule")
+  escalationActionTargets   EscalationAction[]          @relation("EscalationActionTarget")
+  escalationEventActors     EscalationEvent[]           @relation("EscalationEventActor")
+  escalationEventRecipients EscalationEventTarget[]     @relation("EscalationEventRecipient")
+  deEscalationEventActors   DeEscalationEvent[]         @relation("DeEscalationEventActor")
+  notifications             Notification[]
+  notificationPreferences   NotificationPreference[]
+  modifiedTemplates         NotificationTemplate[]
+  reportThresholdUpdates    ReportThresholdConfig[]     @relation("ThresholdUpdater")
+
+  @@index([status])
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid())
+  tokenHash  String    @unique
+  userId     String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  deviceInfo String?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AuthEventLog {
+  id        String    @id @default(uuid())
+  userId    String?
+  event     AuthEvent
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+model Customer {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  fullName       String
+  phone          String?
+  jobTitle       String?
+  organizationId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization?                @relation("OrganizationMembers", fields: [organizationId], references: [id], onDelete: SetNull)
+  primaryFor   Organization?                @relation("OrganizationPrimaryContact")
+  auditEntries CustomerProfileAuditEntry[]
+
+  @@index([organizationId])
+}
+
+model Organization {
+  id               String   @id @default(uuid())
+  name             String   @unique
+  emailDomain      String?
+  industry         String?
+  primaryContactId String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  members        Customer[] @relation("OrganizationMembers")
+  primaryContact Customer?  @relation("OrganizationPrimaryContact", fields: [primaryContactId], references: [id], onDelete: SetNull)
+}
+
+model CustomerProfileAuditEntry {
+  id            String   @id @default(uuid())
+  customerId    String
+  fieldName     String
+  previousValue String?
+  newValue      String?
+  changedById   String
+  changedAt     DateTime @default(now())
+
+  customer  Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  changedBy User     @relation("CustomerAuditActor", fields: [changedById], references: [id])
+
+  @@index([customerId, changedAt])
+  @@index([changedById])
+}
+
+model TicketCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tickets Ticket[]
+}
+
+model Ticket {
+  id              String         @id @default(uuid())
+  referenceNumber String         @unique
+  title           String
+  description     String
+  status          TicketStatus   @default(OPEN)
+  priority        TicketPriority @default(MEDIUM)
+  categoryId      String?
+  customerId      String
+  assignedAgentId String?
+  teamId          String?
+  isEscalated     Boolean        @default(false)
+  escalatedAt     DateTime?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  category        TicketCategory?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  customer        User                     @relation("CustomerTickets", fields: [customerId], references: [id])
+  assignedAgent   User?                    @relation("AgentTickets", fields: [assignedAgentId], references: [id])
+  team            SupportTeam?             @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  comments        TicketComment[]
+  activityLog     TicketActivityLogEntry[]
+  escalationEvents EscalationEvent[]
+  escalationStates TicketPolicyEscalationState[]
+  deEscalations    DeEscalationEvent[]
+
+  @@index([customerId])
+  @@index([assignedAgentId])
+  @@index([status])
+  @@index([priority])
+  @@index([categoryId])
+  @@index([status, priority])
+  @@index([customerId, status])
+  @@index([teamId])
+  @@index([isEscalated, escalatedAt])
+  @@index([createdAt])
+  @@index([resolvedAt])
+}
+
+model TicketComment {
+  id             String   @id @default(uuid())
+  ticketId       String
+  authorId       String
+  body           String
+  isInternalNote Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  ticket      Ticket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author      User               @relation(fields: [authorId], references: [id])
+  attachments TicketAttachment[]
+
+  @@index([ticketId, createdAt])
+}
+
+model TicketAttachment {
+  id            String   @id @default(uuid())
+  commentId     String
+  fileName      String
+  mimeType      String
+  fileSizeBytes Int
+  storageKey    String
+  createdAt     DateTime @default(now())
+
+  comment TicketComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+}
+
+model TicketActivityLogEntry {
+  id            String              @id @default(uuid())
+  ticketId      String
+  event         TicketActivityEvent
+  actorId       String?
+  previousValue String?
+  newValue      String?
+  createdAt     DateTime            @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actor  User?  @relation("TicketActivityActor", fields: [actorId], references: [id])
+
+  @@index([ticketId, createdAt])
+}
+
+model SupportTeam {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships     TeamMembership[]
+  assignmentRules AssignmentRule[]
+  tickets         Ticket[]
+
+  @@index([isActive])
+}
+
+model TeamMembership {
+  id       String   @id @default(uuid())
+  teamId   String
+  agentId  String
+  joinedAt DateTime @default(now())
+
+  team  SupportTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  agent User        @relation("AgentTeamMemberships", fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, agentId])
+  @@index([agentId])
+}
+
+model AssignmentRule {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  rank          Int
+  isActive      Boolean  @default(true)
+  targetAgentId String?
+  targetTeamId  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  targetAgent User?                     @relation("AgentTargetRules", fields: [targetAgentId], references: [id], onDelete: SetNull)
+  targetTeam  SupportTeam?              @relation(fields: [targetTeamId], references: [id], onDelete: SetNull)
+  conditions  AssignmentRuleCondition[]
+
+  @@index([rank, isActive])
+  @@index([targetTeamId])
+}
+
+model AssignmentRuleCondition {
+  id       String                @id @default(uuid())
+  ruleId   String
+  field    RuleConditionField
+  operator RuleConditionOperator
+  value    String
+
+  rule AssignmentRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+}
+
+model AgentAvailability {
+  id        String      @id @default(uuid())
+  agentId   String      @unique
+  status    AgentStatus @default(AVAILABLE)
+  updatedAt DateTime    @updatedAt
+
+  agent User @relation("AgentAvailability", fields: [agentId], references: [id], onDelete: Cascade)
+}
+
+model AgentAvailabilitySchedule {
+  id           String @id @default(uuid())
+  agentId      String
+  dayOfWeek    Int
+  startTimeUtc String
+  endTimeUtc   String
+  timezone     String
+
+  agent User @relation("AgentSchedule", fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, dayOfWeek])
+  @@index([agentId])
+}
+
+model EscalationPolicy {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  scopeCategories String[]         @default([])
+  scopePriorities TicketPriority[] @default([])
+  isActive        Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  tiers            EscalationTier[]
+  events           EscalationEvent[]
+  escalationStates TicketPolicyEscalationState[]
+
+  @@index([isActive])
+}
+
+model EscalationTier {
+  id               String           @id @default(uuid())
+  policyId         String
+  ordinal          Int
+  triggerCondition TriggerCondition
+  thresholdHours   Int
+  createdAt        DateTime         @default(now())
+
+  policy  EscalationPolicy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  actions EscalationAction[]
+  events  EscalationEvent[]
+
+  @@unique([policyId, ordinal])
+}
+
+model EscalationAction {
+  id           String               @id @default(uuid())
+  tierId       String
+  actionType   EscalationActionType
+  targetUserId String?
+  targetRole   Role?
+  createdAt    DateTime             @default(now())
+
+  tier       EscalationTier @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  targetUser User?          @relation("EscalationActionTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([tierId])
+}
+
+model EscalationEvent {
+  id            String              @id @default(uuid())
+  ticketId      String
+  policyId      String?
+  tierId        String?
+  type          EscalationEventType
+  reason        String?
+  escalatedById String?
+  createdAt     DateTime            @default(now())
+
+  ticket      Ticket                    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  policy      EscalationPolicy?         @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  tier        EscalationTier?           @relation(fields: [tierId], references: [id], onDelete: SetNull)
+  escalatedBy User?                     @relation("EscalationEventActor", fields: [escalatedById], references: [id], onDelete: SetNull)
+  targets     EscalationEventTarget[]
+
+  @@index([ticketId])
+  @@index([policyId])
+  @@index([type, createdAt])
+  @@index([createdAt])
+}
+
+model EscalationEventTarget {
+  id          String  @id @default(uuid())
+  eventId     String
+  recipientId String
+  skipped     Boolean @default(false)
+  skipReason  String?
+
+  event     EscalationEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  recipient User            @relation("EscalationEventRecipient", fields: [recipientId], references: [id])
+
+  @@index([eventId])
+  @@index([recipientId])
+}
+
+model TicketPolicyEscalationState {
+  id                String   @id @default(uuid())
+  ticketId          String
+  policyId          String
+  firedTierOrdinals Int[]    @default([])
+  updatedAt         DateTime @updatedAt
+
+  ticket Ticket           @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  policy EscalationPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketId, policyId])
+}
+
+model DeEscalationEvent {
+  id             String   @id @default(uuid())
+  ticketId       String
+  performedById  String
+  resolutionNote String
+  createdAt      DateTime @default(now())
+
+  ticket      Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  performedBy User   @relation("DeEscalationEventActor", fields: [performedById], references: [id])
+
+  @@index([ticketId])
+  @@index([createdAt])
+}
+
+model NotificationEvent {
+  id               String                @id @default(uuid())
+  eventType        NotificationEventType
+  sourceEntityType String
+  sourceEntityId   String
+  payload          Json
+  createdAt        DateTime              @default(now())
+
+  notifications Notification[]
+
+  @@index([sourceEntityId, eventType])
+}
+
+model Notification {
+  id           String              @id @default(uuid())
+  eventId      String
+  recipientId  String
+  channel      NotificationChannel
+  status       NotificationStatus  @default(PENDING)
+  isRead       Boolean             @default(false)
+  scheduledFor DateTime?
+  nextRetryAt  DateTime?
+  attemptCount Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  event     NotificationEvent             @relation(fields: [eventId], references: [id])
+  recipient User                          @relation(fields: [recipientId], references: [id])
+  attempts  NotificationDeliveryAttempt[]
+
+  @@index([recipientId, isRead, createdAt(sort: Desc)])
+  @@index([status, channel, nextRetryAt])
+  @@index([status, channel, scheduledFor])
+  @@index([recipientId, createdAt])
+  @@index([eventId])
+}
+
+model NotificationPreference {
+  id                 String                @id @default(uuid())
+  userId             String
+  eventType          NotificationEventType
+  channel            NotificationChannel
+  enabled            Boolean               @default(true)
+  quietHoursStart    String?
+  quietHoursEnd      String?
+  quietHoursTimezone String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, eventType, channel])
+}
+
+model NotificationTemplate {
+  id                      String                @id @default(uuid())
+  eventType               NotificationEventType
+  channel                 NotificationChannel
+  subjectTemplate         String?
+  bodyTemplate            String
+  previousSubjectTemplate String?
+  previousBodyTemplate    String?
+  lastModifiedById        String?
+  lastModifiedAt          DateTime?
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+
+  lastModifiedBy User? @relation(fields: [lastModifiedById], references: [id])
+
+  @@unique([eventType, channel])
+}
+
+model NotificationDeliveryAttempt {
+  id             String                @id @default(uuid())
+  notificationId String
+  attemptNumber  Int
+  status         DeliveryAttemptStatus
+  errorReason    String?
+  attemptedAt    DateTime              @default(now())
+
+  notification Notification @relation(fields: [notificationId], references: [id])
+
+  @@index([notificationId, attemptNumber])
+}
+
+model ReportThresholdConfig {
+  id                      String   @id @default("default")
+  criticalResolutionHours Int      @default(2)
+  highResolutionHours     Int      @default(8)
+  mediumResolutionHours   Int      @default(24)
+  lowResolutionHours      Int      @default(48)
+  updatedById             String?
+  updatedAt               DateTime @updatedAt
+
+  updatedBy User? @relation("ThresholdUpdater", fields: [updatedById], references: [id])
+}
