@@ -8,8 +8,9 @@ accounts, opportunities and sales activities.
 
 ## Frontend
 
-- React Native
-- TypeScript
+- React 18 + Vite 5
+- TypeScript (strict)
+- React Router v6
 
 ## Backend
 
@@ -129,4 +130,22 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 - Explicit user or orchestrator instructions override this Beads block.
 - Do not commit or push without clear authority from the active profile or the current user request.
 - If a required sync or push is blocked, stop and report the exact command and error.
+
+
+## Task Management
+
+Use Beads for all task tracking.
+
+Before starting work:
+- Run bd ready
+- Review open tasks
+
+When creating new work:
+- Run bd create
+
+When completing work:
+- Run bd close <id>
+
+Beads is the source of truth for project progress.
+
 <!-- END BEADS INTEGRATION -->
