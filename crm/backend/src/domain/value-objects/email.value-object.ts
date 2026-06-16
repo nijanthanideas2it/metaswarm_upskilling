@@ -9,8 +9,11 @@ export class Email {
 
   constructor(raw: string) {
     const normalised = raw.trim().toLowerCase();
+    if (normalised.length > 254) {
+      throw new InvalidEmailError();
+    }
     if (!EMAIL_REGEX.test(normalised)) {
-      throw new InvalidEmailError(raw);
+      throw new InvalidEmailError();
     }
     this._value = normalised;
   }
