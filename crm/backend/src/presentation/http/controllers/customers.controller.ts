@@ -12,6 +12,7 @@ import type { ListCustomersUseCase } from '../../../application/use-cases/custom
 import type { SearchCustomersUseCase } from '../../../application/use-cases/customers/search-customers.use-case';
 import type { UpdateCustomerUseCase } from '../../../application/use-cases/customers/update-customer.use-case';
 import type { UpdateOwnProfileUseCase } from '../../../application/use-cases/customers/update-own-profile.use-case';
+import type { GetOwnProfileUseCase } from '../../../application/use-cases/customers/get-own-profile.use-case';
 import type { DeactivateCustomerUseCase } from '../../../application/use-cases/customers/deactivate-customer.use-case';
 import type { ReactivateCustomerUseCase } from '../../../application/use-cases/customers/reactivate-customer.use-case';
 
@@ -37,6 +38,7 @@ export class CustomersController {
     private readonly searchUseCase: SearchCustomersUseCase,
     private readonly updateUseCase: UpdateCustomerUseCase,
     private readonly updateOwnUseCase: UpdateOwnProfileUseCase,
+    private readonly getOwnUseCase: GetOwnProfileUseCase,
     private readonly deactivateUseCase: DeactivateCustomerUseCase,
     private readonly reactivateUseCase: ReactivateCustomerUseCase,
   ) {}
@@ -112,6 +114,16 @@ export class CustomersController {
         fields: req.body as Record<string, unknown>,
       });
       res.status(200).json({ data: customer, meta: null, error: null });
+    } catch (err) { mapError(err, res, next); }
+  };
+
+  getOwn = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { customer, ticketSummary } = await this.getOwnUseCase.execute({
+        callerUserId: req.user!.sub,
+        callerRole: req.user!.role as Role,
+      });
+      res.status(200).json({ data: { ...customer, ticketSummary }, meta: null, error: null });
     } catch (err) { mapError(err, res, next); }
   };
 

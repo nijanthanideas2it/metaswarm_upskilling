@@ -119,5 +119,47 @@ describe('UpdateCustomerUseCase', () => {
         expect.any(String),
       );
     });
+
+    it('clears phone when set to null', async () => {
+      customerRepo.findById.mockResolvedValue({ ...existing, phone: '+1-555-0100' });
+      customerRepo.updateWithAudit.mockResolvedValue({ ...existing, phone: null });
+
+      await useCase.execute({ ...baseInput, fields: { phone: null } });
+
+      expect(customerRepo.updateWithAudit).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ phone: null }),
+        [{ fieldName: 'phone', previousValue: '+1-555-0100', newValue: null }],
+        expect.any(String),
+      );
+    });
+
+    it('records jobTitle change', async () => {
+      customerRepo.findById.mockResolvedValue({ ...existing, jobTitle: 'Engineer' });
+      customerRepo.updateWithAudit.mockResolvedValue({ ...existing, jobTitle: 'Senior Engineer' });
+
+      await useCase.execute({ ...baseInput, fields: { jobTitle: 'Senior Engineer' } });
+
+      expect(customerRepo.updateWithAudit).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ jobTitle: 'Senior Engineer' }),
+        [{ fieldName: 'jobTitle', previousValue: 'Engineer', newValue: 'Senior Engineer' }],
+        expect.any(String),
+      );
+    });
+
+    it('clears jobTitle when set to null', async () => {
+      customerRepo.findById.mockResolvedValue({ ...existing, jobTitle: 'Engineer' });
+      customerRepo.updateWithAudit.mockResolvedValue({ ...existing, jobTitle: null });
+
+      await useCase.execute({ ...baseInput, fields: { jobTitle: null } });
+
+      expect(customerRepo.updateWithAudit).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ jobTitle: null }),
+        [{ fieldName: 'jobTitle', previousValue: 'Engineer', newValue: null }],
+        expect.any(String),
+      );
+    });
   });
 });

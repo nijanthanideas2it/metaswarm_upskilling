@@ -7,7 +7,7 @@ export class NodemailerEmailService implements IEmailService {
 
   constructor() {
     // Guard: skip creating transporter when SMTP_HOST is not configured (test/dev without SMTP)
-    if (env.SMTP_HOST === undefined) {
+    if (!env.SMTP_HOST) {
       this.transporter = null;
     } else {
       this.transporter = nodemailer.createTransport({

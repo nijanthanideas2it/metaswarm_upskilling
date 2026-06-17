@@ -16,6 +16,7 @@ import { ListCustomersUseCase } from '../../../application/use-cases/customers/l
 import { SearchCustomersUseCase } from '../../../application/use-cases/customers/search-customers.use-case';
 import { UpdateCustomerUseCase } from '../../../application/use-cases/customers/update-customer.use-case';
 import { UpdateOwnProfileUseCase } from '../../../application/use-cases/customers/update-own-profile.use-case';
+import { GetOwnProfileUseCase } from '../../../application/use-cases/customers/get-own-profile.use-case';
 import { DeactivateCustomerUseCase } from '../../../application/use-cases/customers/deactivate-customer.use-case';
 import { ReactivateCustomerUseCase } from '../../../application/use-cases/customers/reactivate-customer.use-case';
 import { CustomersController } from '../controllers/customers.controller';
@@ -42,11 +43,12 @@ export function createCustomersRoutes(): Router {
   const searchUC = new SearchCustomersUseCase(customerRepo);
   const updateUC = new UpdateCustomerUseCase(customerRepo);
   const updateOwnUC = new UpdateOwnProfileUseCase(customerRepo);
+  const getOwnUC = new GetOwnProfileUseCase(customerRepo, ticketSummaryService);
   const deactivateUC = new DeactivateCustomerUseCase(customerRepo, authTokenRepo);
   const reactivateUC = new ReactivateCustomerUseCase(customerRepo);
 
   const controller = new CustomersController(
-    createUC, getUC, listUC, searchUC, updateUC, updateOwnUC, deactivateUC, reactivateUC,
+    createUC, getUC, listUC, searchUC, updateUC, updateOwnUC, getOwnUC, deactivateUC, reactivateUC,
   );
 
   void env; // env already validated on startup — referenced here for documentation
@@ -56,6 +58,7 @@ export function createCustomersRoutes(): Router {
 
   router.post('/', auth, requireRole(Role.ADMIN, Role.SUPPORT_MANAGER), validateRequest(CreateCustomerSchema), controller.create);
   router.get('/search', auth, controller.search);
+  router.get('/me', auth, requireRole(Role.CUSTOMER), controller.getOwn);
   router.patch('/me', auth, requireRole(Role.CUSTOMER), validateRequest(UpdateCustomerSchema), controller.updateOwn);
   router.get('/', auth, controller.list);
   router.get('/:id', auth, controller.get);

@@ -1,5 +1,11 @@
 import { httpGet, httpPost, httpPatch } from './http';
 
+export interface OwnProfileUpdateBody {
+  fullName?: string;
+  phone?: string | null;
+  jobTitle?: string | null;
+}
+
 export interface CustomerListItem {
   id: string;
   fullName: string;
@@ -122,6 +128,18 @@ export async function deactivateCustomer(
     {},
     accessToken,
   );
+}
+
+export async function getOwnProfile(accessToken: string): Promise<CustomerProfile> {
+  const result = await httpGet<CustomerProfile>('/api/v1/customers/me', accessToken);
+  return result.data;
+}
+
+export async function updateOwnProfile(
+  accessToken: string,
+  body: OwnProfileUpdateBody,
+): Promise<CustomerProfile> {
+  return httpPatch<CustomerProfile>('/api/v1/customers/me', body, accessToken);
 }
 
 export async function reactivateCustomer(

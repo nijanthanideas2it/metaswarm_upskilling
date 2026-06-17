@@ -12,6 +12,7 @@ import type { ListCustomersUseCase } from '../../src/application/use-cases/custo
 import type { SearchCustomersUseCase } from '../../src/application/use-cases/customers/search-customers.use-case';
 import type { UpdateCustomerUseCase } from '../../src/application/use-cases/customers/update-customer.use-case';
 import type { UpdateOwnProfileUseCase } from '../../src/application/use-cases/customers/update-own-profile.use-case';
+import type { GetOwnProfileUseCase } from '../../src/application/use-cases/customers/get-own-profile.use-case';
 import type { DeactivateCustomerUseCase } from '../../src/application/use-cases/customers/deactivate-customer.use-case';
 import type { ReactivateCustomerUseCase } from '../../src/application/use-cases/customers/reactivate-customer.use-case';
 import {
@@ -50,6 +51,7 @@ function buildMockUseCases() {
     searchUseCase: { execute: jest.fn() } as unknown as jest.Mocked<SearchCustomersUseCase>,
     updateUseCase: { execute: jest.fn() } as unknown as jest.Mocked<UpdateCustomerUseCase>,
     updateOwnUseCase: { execute: jest.fn() } as unknown as jest.Mocked<UpdateOwnProfileUseCase>,
+    getOwnUseCase: { execute: jest.fn() } as unknown as jest.Mocked<GetOwnProfileUseCase>,
     deactivateUseCase: { execute: jest.fn() } as unknown as jest.Mocked<DeactivateCustomerUseCase>,
     reactivateUseCase: { execute: jest.fn() } as unknown as jest.Mocked<ReactivateCustomerUseCase>,
   };
@@ -69,6 +71,7 @@ function createTestApp(
     mocks.searchUseCase,
     mocks.updateUseCase,
     mocks.updateOwnUseCase,
+    mocks.getOwnUseCase,
     mocks.deactivateUseCase,
     mocks.reactivateUseCase,
   );
@@ -80,6 +83,7 @@ function createTestApp(
 
   app.post('/api/v1/customers', auth, requireRole(Role.ADMIN, Role.SUPPORT_MANAGER), validateRequest(CreateCustomerSchema), controller.create);
   app.get('/api/v1/customers/search', auth, controller.search);
+  app.get('/api/v1/customers/me', auth, requireRole(Role.CUSTOMER), controller.getOwn);
   app.patch('/api/v1/customers/me', auth, requireRole(Role.CUSTOMER), validateRequest(UpdateCustomerSchema), controller.updateOwn);
   app.get('/api/v1/customers', auth, controller.list);
   app.get('/api/v1/customers/:id', auth, controller.get);
@@ -478,6 +482,62 @@ describe('PATCH /api/v1/customers/me', () => {
 
   it('returns 401 when Authorization header is missing', async () => {
     const res = await request(app).patch('/api/v1/customers/me').send({ fullName: 'Jane' });
+    expect(res.status).toBe(401);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/customers/me
+// ---------------------------------------------------------------------------
+describe('GET /api/v1/customers/me', () => {
+  let mocks: ReturnType<typeof buildMockUseCases>;
+  let app: express.Express;
+
+  beforeEach(() => {
+    mocks = buildMockUseCases();
+    app = createTestApp(mocks, CUSTOMER_USER);
+  });
+
+  it('returns 200 with own profile for CUSTOMER role', async () => {
+    const profileWithTickets = { ...CUSTOMER_FIXTURE, ticketSummary: { totalTickets: 2, openTickets: 1, lastTicketAt: null } };
+    (mocks.getOwnUseCase.execute as jest.Mock).mockResolvedValue({
+      customer: CUSTOMER_FIXTURE,
+      ticketSummary: { totalTickets: 2, openTickets: 1, lastTicketAt: null },
+    });
+
+    const res = await request(app)
+      .get('/api/v1/customers/me')
+      .set('Authorization', 'Bearer token');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.id).toBe(CUSTOMER_FIXTURE.id);
+    expect(res.body.error).toBeNull();
+    void profileWithTickets;
+  });
+
+  it('returns 404 when customer profile not found for user', async () => {
+    const { CustomerNotFoundError: NotFoundErr } = await import('../../src/domain/errors/domain.error');
+    (mocks.getOwnUseCase.execute as jest.Mock).mockRejectedValue(new NotFoundErr());
+
+    const res = await request(app)
+      .get('/api/v1/customers/me')
+      .set('Authorization', 'Bearer token');
+
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 403 when called by Support Agent (not Customer role)', async () => {
+    const agentApp = createTestApp(mocks, AGENT_USER);
+
+    const res = await request(agentApp)
+      .get('/api/v1/customers/me')
+      .set('Authorization', 'Bearer token');
+
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 401 when Authorization header is missing', async () => {
+    const res = await request(app).get('/api/v1/customers/me');
     expect(res.status).toBe(401);
   });
 });

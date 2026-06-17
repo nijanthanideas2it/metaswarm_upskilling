@@ -6,7 +6,17 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-const NAV_ITEMS = [{ to: '/customers', label: 'Customers' }];
+interface NavItem {
+  to: string;
+  label: string;
+  roles?: string[];
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { to: '/customers', label: 'Customers', roles: ['ADMIN', 'SUPPORT_MANAGER', 'SUPPORT_AGENT'] },
+  { to: '/organizations', label: 'Organizations', roles: ['ADMIN', 'SUPPORT_MANAGER', 'SUPPORT_AGENT'] },
+  { to: '/profile', label: 'My Profile', roles: ['CUSTOMER'] },
+];
 
 export function Layout({ children }: LayoutProps) {
   const { state, logout } = useAuth();
@@ -20,6 +30,11 @@ export function Layout({ children }: LayoutProps) {
 
   const displayName = state.user?.email || state.user?.id || '';
   const roleLabel = state.user?.role?.replace(/_/g, ' ').toLowerCase() ?? '';
+  const userRole = state.user?.role ?? '';
+
+  const visibleNav = NAV_ITEMS.filter(
+    ({ roles }) => !roles || roles.includes(userRole),
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -29,7 +44,7 @@ export function Layout({ children }: LayoutProps) {
         </div>
 
         <nav className="flex-1 px-3 py-3 space-y-0.5">
-          {NAV_ITEMS.map(({ to, label }) => (
+          {visibleNav.map(({ to, label }) => (
             <Link
               key={to}
               to={to}

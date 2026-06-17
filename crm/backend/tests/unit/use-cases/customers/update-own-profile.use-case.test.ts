@@ -105,5 +105,51 @@ describe('UpdateOwnProfileUseCase', () => {
         expect.any(String),
       );
     });
+
+    it('updates phone to a new non-null value', async () => {
+      customerRepo.findByUserId.mockResolvedValue({ ...existing, phone: null });
+      const updated = { ...existing, phone: '+1-555-9999' };
+      customerRepo.updateWithAudit.mockResolvedValue(updated);
+
+      const result = await useCase.execute({ ...baseInput, fields: { phone: '+1-555-9999' } });
+
+      expect(customerRepo.updateWithAudit).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ phone: '+1-555-9999' }),
+        [{ fieldName: 'phone', previousValue: null, newValue: '+1-555-9999' }],
+        expect.any(String),
+      );
+      expect(result.phone).toBe('+1-555-9999');
+    });
+
+    it('updates jobTitle to a new value', async () => {
+      customerRepo.findByUserId.mockResolvedValue({ ...existing, jobTitle: 'Engineer' });
+      const updated = { ...existing, jobTitle: 'Senior Engineer' };
+      customerRepo.updateWithAudit.mockResolvedValue(updated);
+
+      const result = await useCase.execute({ ...baseInput, fields: { jobTitle: 'Senior Engineer' } });
+
+      expect(customerRepo.updateWithAudit).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ jobTitle: 'Senior Engineer' }),
+        [{ fieldName: 'jobTitle', previousValue: 'Engineer', newValue: 'Senior Engineer' }],
+        expect.any(String),
+      );
+      expect(result.jobTitle).toBe('Senior Engineer');
+    });
+
+    it('clears jobTitle when set to null', async () => {
+      customerRepo.findByUserId.mockResolvedValue({ ...existing, jobTitle: 'Engineer' });
+      customerRepo.updateWithAudit.mockResolvedValue({ ...existing, jobTitle: null });
+
+      await useCase.execute({ ...baseInput, fields: { jobTitle: null } });
+
+      expect(customerRepo.updateWithAudit).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ jobTitle: null }),
+        [{ fieldName: 'jobTitle', previousValue: 'Engineer', newValue: null }],
+        expect.any(String),
+      );
+    });
   });
 });
