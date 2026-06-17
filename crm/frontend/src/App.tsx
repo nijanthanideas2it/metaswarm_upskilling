@@ -11,6 +11,7 @@ import { OrganizationListPage } from './pages/organizations/OrganizationListPage
 import { OrganizationCreatePage } from './pages/organizations/OrganizationCreatePage';
 import { OrganizationDetailPage } from './pages/organizations/OrganizationDetailPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { ReportingDashboardPage } from './pages/reports/ReportingDashboardPage';
 
 export default function App() {
   return (
@@ -67,6 +68,15 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <OrganizationDetailPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <ReportingDashboardPage />
               </ProtectedRoute>
             }
           />

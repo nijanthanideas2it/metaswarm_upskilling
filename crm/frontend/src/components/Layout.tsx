@@ -15,6 +15,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/customers', label: 'Customers', roles: ['ADMIN', 'SUPPORT_MANAGER', 'SUPPORT_AGENT'] },
   { to: '/organizations', label: 'Organizations', roles: ['ADMIN', 'SUPPORT_MANAGER', 'SUPPORT_AGENT'] },
+  { to: '/reports', label: 'Reports', roles: ['ADMIN', 'SUPPORT_MANAGER'] },
   { to: '/profile', label: 'My Profile', roles: ['CUSTOMER'] },
 ];
 
