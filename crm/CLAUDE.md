@@ -39,35 +39,7 @@ accounts, opportunities and sales activities.
 - Test command: `cd backend && npm test`
 - Coverage command: `cd backend && npm test` (jest --coverage is configured in backend)
 
-## Active Features
 
-### Ticket Assignment (`004-ticket-assignment`)
-**Plan**: `specs/004-ticket-assignment/plan.md`
-**Spec**: `specs/004-ticket-assignment/spec.md`
-**Data Model**: `specs/004-ticket-assignment/data-model.md`
-**Contracts**: `specs/004-ticket-assignment/contracts/teams.md`, `specs/004-ticket-assignment/contracts/assignment-rules.md`, `specs/004-ticket-assignment/contracts/workload.md`
-**Quickstart**: `specs/004-ticket-assignment/quickstart.md`
-
-### Escalation Management (`005-escalation-management`)
-**Plan**: `specs/005-escalation-management/plan.md`
-**Spec**: `specs/005-escalation-management/spec.md`
-**Data Model**: `specs/005-escalation-management/data-model.md`
-**Contracts**: `specs/005-escalation-management/contracts/escalation-policies.md`, `specs/005-escalation-management/contracts/ticket-escalation.md`, `specs/005-escalation-management/contracts/escalation-audit.md`
-**Quickstart**: `specs/005-escalation-management/quickstart.md`
-
-### Notifications (`006-notifications`)
-**Plan**: `specs/006-notifications/plan.md`
-**Spec**: `specs/006-notifications/spec.md`
-**Data Model**: `specs/006-notifications/data-model.md`
-**Contracts**: `specs/006-notifications/contracts/notifications.md`, `specs/006-notifications/contracts/notification-preferences.md`, `specs/006-notifications/contracts/notification-templates.md`
-**Quickstart**: `specs/006-notifications/quickstart.md`
-
-### Reporting Dashboard (`007-reporting-dashboard`)
-**Plan**: `specs/007-reporting-dashboard/plan.md`
-**Spec**: `specs/007-reporting-dashboard/spec.md`
-**Data Model**: `specs/007-reporting-dashboard/data-model.md`
-**Contracts**: `specs/007-reporting-dashboard/contracts/reports.md`, `specs/007-reporting-dashboard/contracts/exports.md`
-**Quickstart**: `specs/007-reporting-dashboard/quickstart.md`
 <!-- SPECKIT END -->
 
 ## metaswarm
