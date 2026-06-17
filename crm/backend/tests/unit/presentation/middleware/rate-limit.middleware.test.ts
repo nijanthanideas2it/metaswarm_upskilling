@@ -5,7 +5,7 @@ let capturedLoginHandler: ((req: Request, res: Response, next: () => void) => vo
 let capturedAuthHandler: ((req: Request, res: Response, next: () => void) => void) | undefined;
 
 jest.mock('express-rate-limit', () => {
-  return jest.fn().mockImplementation((options: { max?: number; handler?: Function }) => {
+  return jest.fn().mockImplementation((options: { max?: number; handler?: (req: Request, res: Response, next: () => void) => void }) => {
     const middleware = jest.fn();
     if (options.max === 10) {
       capturedLoginHandler = options.handler as typeof capturedLoginHandler;

@@ -36,6 +36,8 @@ accounts, opportunities and sales activities.
 
 - Jest
 - Minimum 80% Coverage
+- Test command: `cd backend && npm test`
+- Coverage command: `cd backend && npm test` (jest --coverage is configured in backend)
 
 ## Active Features
 

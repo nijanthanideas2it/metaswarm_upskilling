@@ -2,3 +2,8 @@ export * from './login.dto';
 export * from './refresh-token.dto';
 export * from './forgot-password.dto';
 export * from './reset-password.dto';
+export * from './create-customer.dto';
+export * from './update-customer.dto';
+export * from './list-customers-query.dto';
+export * from './create-organization.dto';
+export * from './update-organization.dto';

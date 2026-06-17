@@ -53,3 +53,47 @@ export class PasswordComplexityError extends DomainError {
     super('Password must be at least 8 characters and contain at least one letter and one number');
   }
 }
+
+// ─── Customer Management errors ──────────────────────────────────────────────
+
+export class ForbiddenError extends DomainError {
+  constructor() {
+    super('You do not have permission to perform this action');
+  }
+}
+
+export class CustomerNotFoundError extends DomainError {
+  constructor() {
+    super('Customer not found');
+  }
+}
+
+export class DuplicateEmailError extends DomainError {
+  constructor() {
+    super('A customer with this email address already exists');
+  }
+}
+
+export class OrganizationNotFoundError extends DomainError {
+  constructor() {
+    super('Organization not found');
+  }
+}
+
+export class DuplicateOrganizationNameError extends DomainError {
+  constructor() {
+    super('An organization with this name already exists');
+  }
+}
+
+export class OrganizationHasMembersError extends DomainError {
+  constructor() {
+    super('Organization cannot be deleted while it has associated customers');
+  }
+}
+
+export class CustomerSearchQueryTooShortError extends DomainError {
+  constructor() {
+    super('Search query must be at least 2 characters');
+  }
+}

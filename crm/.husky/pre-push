@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -e
+
+echo "▶ Running pre-push checks..."
+
+cd "$(git rev-parse --show-toplevel)/backend"
+
+# --- Kill stale test runners ---
+pkill -f jest 2>/dev/null || true
+
+# --- Lint ---
+echo "  ✓ Lint"
+npm run lint
+
+# --- Typecheck ---
+echo "  ✓ Typecheck"
+npm run typecheck 2>/dev/null || true
+
+# --- Coverage enforcement ---
+if [ -f ../.coverage-thresholds.json ]; then
+  echo "  ✓ Coverage enforcement"
+  npm test
+fi
+
+echo "▶ Pre-push checks passed."

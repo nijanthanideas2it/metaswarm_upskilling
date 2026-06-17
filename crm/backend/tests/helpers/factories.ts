@@ -1,6 +1,8 @@
 import { AuthEvent, AccountStatus, Role } from '../../src/domain/enums';
 import type { AuthEventLogEntity } from '../../src/domain/entities/auth-event-log.entity';
 import type { AuthTokenEntity } from '../../src/domain/entities/auth-token.entity';
+import type { CustomerEntity } from '../../src/domain/entities/customer.entity';
+import type { OrganizationEntity } from '../../src/domain/entities/organization.entity';
 import type { PasswordResetTokenEntity } from '../../src/domain/entities/password-reset-token.entity';
 import type { UserEntity } from '../../src/domain/entities/user.entity';
 
@@ -58,6 +60,38 @@ export function createAuthEventLogEntity(
     ipAddress: '127.0.0.1',
     userAgent: 'jest-test-agent',
     createdAt: BASE_DATE,
+    ...overrides,
+  };
+}
+
+export function createCustomerEntity(overrides?: Partial<CustomerEntity>): CustomerEntity {
+  return {
+    id: 'customer-id-1',
+    userId: 'user-id-1',
+    fullName: 'Test Customer',
+    phone: null,
+    jobTitle: null,
+    organizationId: null,
+    createdAt: BASE_DATE,
+    updatedAt: BASE_DATE,
+    email: 'customer@example.com',
+    role: Role.CUSTOMER,
+    status: AccountStatus.ACTIVE,
+    ...overrides,
+  };
+}
+
+export function createOrganizationEntity(
+  overrides?: Partial<OrganizationEntity>,
+): OrganizationEntity {
+  return {
+    id: 'org-id-1',
+    name: 'Test Corp',
+    emailDomain: null,
+    industry: null,
+    primaryContactId: null,
+    createdAt: BASE_DATE,
+    updatedAt: BASE_DATE,
     ...overrides,
   };
 }
